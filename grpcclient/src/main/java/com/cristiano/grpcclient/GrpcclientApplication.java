@@ -32,7 +32,7 @@ public class GrpcclientApplication {
 		// log.info(response.getFullname());
 
 		// clientSideStream(stubNonBloking);
-		serverSideStream(stubNonBloking);
+		biDirecionalStream(stubNonBloking);
 		channel.awaitTermination(1, TimeUnit.DAYS);
 		// SpringApplication.run(GrpcclientApplication.class, args);
 	}
@@ -89,6 +89,39 @@ public class GrpcclientApplication {
 		};
 
 		stub.salveAllStreamServer(Usuarios.newBuilder().addAllUsuario(getUsuarios()).build(), responseObserver);
+	}
+
+	public static void biDirecionalStream(UsuarioServiceGrpc.UsuarioServiceStub stub) {
+		StreamObserver<Usuario> responseObserver = new StreamObserver<Usuario>() {
+			@Override
+			public void onNext(Usuario value) {
+				log.info("Usuairo " + value.getFullname() + " recebido");
+			}
+
+			@Override
+			public void onCompleted() {
+				log.info("Finalizado o envio de dados!");
+			}
+
+			@Override
+			public void onError(Throwable t) {
+				log.error(t.getMessage(), t);
+			}
+		};
+
+		StreamObserver<Usuario> requestObserver = stub.salveAllStream(responseObserver);
+
+		try {
+			for (Usuario usuario : getUsuarios()) {
+				log.info("Mandando usuario: " + usuario.getFullname());
+				requestObserver.onNext(usuario);
+				Thread.sleep(2000);
+			}
+		} catch (RuntimeException | InterruptedException e) {
+			requestObserver.onError(e);
+		}
+
+		requestObserver.onCompleted();
 	}
 
 	public static List<Usuario> getUsuarios() {
