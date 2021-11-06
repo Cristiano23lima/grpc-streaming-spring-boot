@@ -31,8 +31,9 @@ public class GrpcclientApplication {
 		// Lima").setEmail("email@teste.com").build());
 		// log.info(response.getFullname());
 
-		clientSideStream(stubNonBloking);
-		channel.shutdown().awaitTermination(5, TimeUnit.MINUTES);
+		// clientSideStream(stubNonBloking);
+		serverSideStream(stubNonBloking);
+		channel.awaitTermination(1, TimeUnit.DAYS);
 		// SpringApplication.run(GrpcclientApplication.class, args);
 	}
 
@@ -67,6 +68,27 @@ public class GrpcclientApplication {
 		}
 
 		requestObserver.onCompleted();
+	}
+
+	public static void serverSideStream(UsuarioServiceGrpc.UsuarioServiceStub stub) {
+		StreamObserver<Usuario> responseObserver = new StreamObserver<Usuario>() {
+			@Override
+			public void onNext(Usuario value) {
+				log.info("Usuário recebido " + value.getFullname());
+			}
+
+			@Override
+			public void onCompleted() {
+				log.info("Finalizando fluxo de cadastro de usuários");
+			}
+
+			@Override
+			public void onError(Throwable t) {
+				log.info(t.getMessage());
+			}
+		};
+
+		stub.salveAllStreamServer(Usuarios.newBuilder().addAllUsuario(getUsuarios()).build(), responseObserver);
 	}
 
 	public static List<Usuario> getUsuarios() {
